@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifa Pro-fondo Alejandra</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #ff6b6b; --secondary: #4ecdc4; --dark: #2d3436; }
+        body { font-family: 'Poppins', sans-serif; background-color: #f0f2f5; padding-bottom: 50px; }
+        header { background: linear-gradient(135deg, var(--primary), #ff8e8e); color: white; padding: 40px 20px; text-align: center; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; }
+        .container { padding: 20px; max-width: 500px; margin: auto; }
+        .info-card { background: white; padding: 20px; border-radius: 15px; margin-top: -30px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; }
+        .number { aspect-ratio: 1/1; background: white; border: 2px solid #ddd; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .selected { background-color: var(--secondary); color: white; border-color: var(--secondary); transform: scale(1.1); }
+        .occupied { background-color: #ffeded; color: #ccc; cursor: not-allowed; border-color: #eee; }
+        #payment-section { display: none; background: white; padding: 20px; border-radius: 15px; margin-top: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        input, button { width: 100%; padding: 14px; margin: 10px 0; border-radius: 10px; border: 1px solid #ddd; font-family: inherit; }
+        button { background-color: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<header><h1>Rifa Pro-fondo Alejandra</h1></header>
+
+<div class="container">
+    <div class="info-card">
+        <p>Valor por número:</p>
+        <div style="font-size: 1.5rem; font-weight: 600; color: var(--primary);">$10.000 COP</div>
+        <p>Selecciona tus números (puedes elegir varios).</p>
+    </div>
+
+    <div class="grid" id="numberGrid"></div>
+
+    <div id="payment-section">
+        <h3>Total a pagar: $<span id="totalDisplay">0</span></h3>
+        <input type="text" id="userName" placeholder="Tu nombre completo">
+        <button id="btnSend">Reservar y Enviar WhatsApp</button>
+    </div>
+</div>
+
+<script>
+    const MI_WHATSAPP = "573118038103"; 
+    const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbwfBlobXjYSfBNW9_bSK39mJLb0nUmZq5hhFXhuUTBLKTyLqu37JIcz3uzDwLYo5zLR1w/exec";
+
+    let selectedNums = [];
+    const grid = document.getElementById('numberGrid');
+
+    async function init() {
+        const res = await fetch(URL_GOOGLE_SCRIPT);
+        const occupied = await res.json();
+        
+        for (let i = 1; i <= 100; i++) {
+            const div = document.createElement('div');
+            div.className = 'number';
+            div.innerText = i;
+            if (occupied.includes(i)) {
+                div.classList.add('occupied');
+            } else {
+                div.onclick = () => {
+                    if (selectedNums.includes(i)) {
+                        selectedNums = selectedNums.filter(n => n !== i);
+                        div.classList.remove('selected');
+                    } else {
+                        selectedNums.push(i);
+                        div.classList.add('selected');
+                    }
+                    const total = selectedNums.length * 10000;
+                    document.getElementById('totalDisplay').innerText = total.toLocaleString();
+                    document.getElementById('payment-section').style.display = selectedNums.length > 0 ? 'block' : 'none';
+                };
+            }
+            grid.appendChild(div);
+        }
+    }
+
+    btnSend.onclick = async () => {
+        const name = document.getElementById('userName').value;
+        if (!name) return alert("Escribe tu nombre");
+        
+        btnSend.innerText = "Enviando...";
+        await fetch(URL_GOOGLE_SCRIPT, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ nombre: name, numeros: selectedNums })
+        });
+        
+        const total = selectedNums.length * 10000;
+        const msg = `Hola, soy ${name}. Reservé los números: ${selectedNums.join(', ')}. Total a pagar: $${total.toLocaleString()}.`;
+        window.location.href = `https://wa.me/${MI_WHATSAPP}?text=${encodeURIComponent(msg)}`;
+    };
+
+    init();
+</script>
+</body>
+</html>
