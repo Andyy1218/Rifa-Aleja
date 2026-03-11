@@ -40,3 +40,79 @@
     <div class="grid" id="numberGrid"></div>
 
     <div id="payment-section">
+        <h3>Total a pagar: $<span id="totalDisplay">0</span></h3>
+        <input type="text" id="userName" placeholder="Tu nombre completo">
+        <button id="btnSend">Reservar y Enviar por WhatsApp</button>
+    </div>
+</div>
+
+<script>
+    const MI_WHATSAPP = "573118038103"; 
+    const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbwfBlobXjYSfBNW9_bSK39mJLb0nUmZq5hhFXhuUTBLKTyLqu37JIcz3uzDwLYo5zLR1w/exec";
+
+    let selectedNums = [];
+    const grid = document.getElementById('numberGrid');
+
+    // Función para formatear el número (Ej: 1 -> 01, 100 -> 00)
+    function formatNum(n) {
+        if (n === 100) return "00";
+        return n.toString().padStart(2, '0');
+    }
+
+    async function init() {
+        const res = await fetch(URL_GOOGLE_SCRIPT);
+        const occupied = await res.json();
+        
+        // Convertimos los ocupados a string para comparar fácil
+        const occupiedStr = occupied.map(n => n.toString());
+
+        for (let i = 1; i <= 100; i++) {
+            const displayNum = formatNum(i);
+            const div = document.createElement('div');
+            div.className = 'number';
+            div.innerText = displayNum;
+            
+            // Verificamos si está ocupado (usando el valor original i)
+            if (occupiedStr.includes(i.toString())) {
+                div.classList.add('occupied');
+            } else {
+                div.onclick = () => {
+                    if (selectedNums.includes(displayNum)) {
+                        selectedNums = selectedNums.filter(n => n !== displayNum);
+                        div.classList.remove('selected');
+                    } else {
+                        selectedNums.push(displayNum);
+                        div.classList.add('selected');
+                    }
+                    const total = selectedNums.length * 10000;
+                    document.getElementById('totalDisplay').innerText = total.toLocaleString();
+                    document.getElementById('payment-section').style.display = selectedNums.length > 0 ? 'block' : 'none';
+                };
+            }
+            grid.appendChild(div);
+        }
+    }
+
+    btnSend.onclick = async () => {
+        const name = document.getElementById('userName').value;
+        if (!name) return alert("Escribe tu nombre");
+        
+        btnSend.innerText = "Enviando...";
+        
+        // Convertimos "00" de vuelta a 100 para el Excel si es necesario, 
+        // o lo enviamos tal cual como texto. Lo enviamos como texto para que se vea igual.
+        await fetch(URL_GOOGLE_SCRIPT, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify({ nombre: name, numeros: selectedNums })
+        });
+        
+        const total = selectedNums.length * 10000;
+        const msg = `¡Hola! Soy ${name}. Reservé los números: ${selectedNums.join(', ')} para la rifa de Alejandra (Juega 18 de Marzo, Caribeña Noche). Total: $${total.toLocaleString()}. Adjunto mi comprobante.`;
+        window.location.href = `https://wa.me/${MI_WHATSAPP}?text=${encodeURIComponent(msg)}`;
+    };
+
+    init();
+</script>
+</body>
+</html>
