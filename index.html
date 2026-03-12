@@ -54,7 +54,7 @@
     const grid = document.getElementById('numberGrid');
 
     function formatNum(n) {
-        if (n === 100) return "0";
+        if (n === 100) return "00";
         return n.toString().padStart(2, '0');
     }
 
@@ -70,8 +70,10 @@
                 div.className = 'number';
                 div.innerText = displayNum;
                 
-                if (occupiedFormatted.includes(displayNum)) {
+                // BLOQUEO DIRECTO: Si es "00" o si está en el Excel
+                if (displayNum === "00" || occupiedFormatted.includes(displayNum)) {
                     div.classList.add('occupied');
+                    div.title = displayNum === "00" ? "Número no disponible" : "Ya vendido";
                 } else {
                     div.onclick = () => {
                         if (selectedNums.includes(displayNum)) {
